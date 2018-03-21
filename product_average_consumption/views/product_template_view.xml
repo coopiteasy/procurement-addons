@@ -17,4 +17,21 @@
       </group>
     </field>
   </record>
+
+  <record id="beesdoo_product_tree" model="ir.ui.view">
+      <field name="name">template.consumption.tree</field>
+      <field name="model">product.template</field>
+      <field eval="7" name="priority"/>
+      <field name="inherit_id" ref="product.product_template_tree_view"/>
+      <field name="arch" type="xml">
+
+        <tree>
+          <field name="volume" invisible="1"/>
+          <field name="weight" invisible="1"/>
+          <field name="average_consumption"/>
+          <field name="total_consumption"/>
+        </tree>
+
+    </field>
+  </record>
 </odoo>
