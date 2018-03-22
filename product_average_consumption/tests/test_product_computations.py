@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from openerp.tests.common import TransactionCase
+from openerp.addons.stock.product import product_template as ProductTemplate
+from openerp.addons.stock.product import product_product as ProductProduct
 import datetime as dt
 
 _datetimes = map(
@@ -15,63 +17,75 @@ class TestProductTemplate(TransactionCase):
     def setUp(self, *args, **kwargs):
         result = super(TestProductTemplate, self).setUp(*args, **kwargs)
 
-        # enrico_groups = [1, 2, 3, 4, 8, 9, 10, 11, 14, 18, 23,  # fixme
-        #                  24, 25, 27, 28, 32, 33, 34, 35, 36, 41,
-        #                  42, 43, 47, 48, 51, 52, 53, 54, 57, 59,
-        #                  60, 62, 63, 64, 65, 73, 75, 76, 77]
-        # # suspected_groups = [10, 35],
-        #
-        # user = self.env['res.users'].create({
-        #     'name': 'Test user product average consumption',
-        #     'login': 'testuserproductaverageconsumption',
-        #     'groups_id': [(6, 0, [enrico_groups])]
-        # })
-        # self.env = self.env(user=user)
-
         test_product_template = (
             self.env['product.template']
                 .create({'name': 'test product template',
                          'calculation_range': 14,
                          'consumption_calculation_method': 'sales_history',
+                         'product_template_id': 0,
                          })
         )
 
-        test_product = (
+        pid = (
             self.env['product.product']
-                .create({'name': 'test product',
-                         'product_tmpl_id': test_product_template.id
-                         })
-        )
+                .search([('product_tmpl_id', '=', test_product_template.id)])
+                .ids
+        ).pop()
 
         for date, qty in zip(_datetimes, _quantities):
             (self.env['pos.order.line']
                  .create({'create_date': date,
                           'qty': qty,
-                          'product_id': test_product.id
+                          'product_id': pid
                           })
              )
 
-        self.test_product_template_id = test_product_template.id
+        def _product_available(*args, **kwargs):
+            products = (
+                self.env['product.product']
+                    .search([
+                        ('product_tmpl_id', '=', test_product_template.id)])
+            )
+            mock_data = {
+                    'qty_available': 53.2,
+                    'incoming_qty': 14,
+                    'outgoing_qty': 4.1,
+                    'virtual_available': 53.2 + 14 - 4.1,
+                }
+            return {pid: mock_data for pid in products.ids}
+
+        ProductTemplate._product_available = _product_available
+        ProductProduct._product_available = _product_available
+
+        test_product_template._compute_total_consumption()
+        self.product_template_id = test_product_template.id
+
         return result
 
     def test_create(self):
         """Create a simple product template"""
         Template = self.env['product.template']
-        product = Template.create({'name': 'Test product'})
-        self.assertEqual(product.name, 'Test product')
+        product = Template.create({'name': 'Test create product'})
+        self.assertEqual(product.name, 'Test create product')
 
     def test_compute_average_daily_consumption(self):
-        product_template = self.env['product.template'].browse(
-            self.test_product_template_id)
-        product_template.calculation_range = 14  # trigger compute
+        ProductTemplate = self.env['product.template']
+        product_template = ProductTemplate.browse(self.product_template_id)
+
         computed_value = product_template.average_consumption
         expected_value = 4.08
         self.assertEqual(computed_value, expected_value, 7)
 
     def test_compute_total_consumption(self):
-        product_template = self.env['product.template'].browse(
-            self.test_product_template_id)
-        product_template.calculation_range = 14  # trigger compute
+        ProductTemplate = self.env['product.template']
+        product_template = ProductTemplate.browse(self.product_template_id)
         computed_value = product_template.total_consumption
         expected_value = 57.11
+        self.assertEqual(computed_value, expected_value)
+
+    def test_compute_estimated_stock_coverage(self):
+        ProductTemplate = self.env['product.template']
+        product_template = ProductTemplate.browse(self.product_template_id)
+        computed_value = product_template.estimated_stock_coverage
+        expected_value = 13.04
         self.assertEqual(computed_value, expected_value)

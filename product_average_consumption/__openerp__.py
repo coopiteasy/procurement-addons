@@ -44,7 +44,8 @@ Copyright, Author and Licence :
     'license': 'AGPL-3',
     'depends': [
         'product',
-        'point_of_sale'
+        'point_of_sale',
+        'stock'
     ],
     'data': [
         'views/product_template_view.xml',
