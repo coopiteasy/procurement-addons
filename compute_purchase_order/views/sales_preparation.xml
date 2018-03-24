@@ -13,7 +13,7 @@
       <field name="categ_id"/>
       <field name="main_seller_id"/>
       <field name="qty_available"/>
-      <field name="estimated_stock_duration"/>
+      <field name="estimated_stock_coverage"/>
     </tree>
     </field>
   </record>

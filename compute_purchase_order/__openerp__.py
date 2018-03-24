@@ -14,6 +14,7 @@
         'product_average_consumption',
     ],
     'data': [
-        'views/purchase_order_preparation.xml',
+        'views/compute_purchase_order.xml',
+        'views/sales_preparation.xml',
     ],
 }
