@@ -49,6 +49,6 @@ Copyright, Author and Licence :
     ],
     'data': [
         'views/product_template_view.xml',
-        # 'views/res_config_view.xml',
+        'data/cron.xml',
     ],
 }

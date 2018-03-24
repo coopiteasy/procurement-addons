@@ -92,3 +92,32 @@ class ProductTemplate(models.Model):
                 product_template.estimated_stock_coverage = 9999
 
         return True
+
+    @api.model
+    def _batch_compute_total_consumption(self):
+        products = (
+            self.env['product.template']
+                .search([('active', '=', True)])
+        )
+
+        query = """
+            select
+              template.id as product_template_id,
+              sum(pol.qty) as total_consumption
+            from pos_order_line pol
+              join pos_order po ON pol.order_id = po.id
+              join product_product product ON pol.product_id = product.id
+              join product_template template ON product.product_tmpl_id = template.id
+              where po.state = 'done'
+                and template.active
+                and pol.create_date
+                    BETWEEN date_trunc('day', now()) - calculation_range * interval '1 days'
+                        and date_trunc('day', now())
+            group by product_template_id
+        """
+
+        self.env.cr.execute(query)
+        results = {pid: qty for pid, qty in self.env.cr.fetchall()}
+
+        for product in products:
+            product.total_consumption = results.get(product.id, product.total_consumption)
