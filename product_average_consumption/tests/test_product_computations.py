@@ -74,18 +74,18 @@ class TestProductTemplate(TransactionCase):
 
         computed_value = product_template.average_consumption
         expected_value = 4.08
-        self.assertEqual(computed_value, expected_value, 7)
+        self.assertAlmostEqual(computed_value, expected_value, 7)
 
     def test_compute_total_consumption(self):
         ProductTemplate = self.env['product.template']
         product_template = ProductTemplate.browse(self.product_template_id)
         computed_value = product_template.total_consumption
         expected_value = 57.11
-        self.assertEqual(computed_value, expected_value)
+        self.assertAlmostEqual(computed_value, expected_value)
 
     def test_compute_estimated_stock_coverage(self):
         ProductTemplate = self.env['product.template']
         product_template = ProductTemplate.browse(self.product_template_id)
         computed_value = product_template.estimated_stock_coverage
         expected_value = 13.04
-        self.assertEqual(computed_value, expected_value)
+        self.assertAlmostEqual(computed_value, expected_value)
