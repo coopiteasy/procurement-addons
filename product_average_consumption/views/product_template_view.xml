@@ -32,6 +32,7 @@
           <field name="estimated_stock_coverage"/>
           <field name="average_consumption"/>
           <field name="total_consumption"/>
+          <field name="calculation_range"/>
         </tree>
 
     </field>

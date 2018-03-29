@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
+from collections import namedtuple
+
 from openerp.tests.common import TransactionCase
 from openerp.addons.stock.product import product_template as ProductTemplate
 from openerp.addons.stock.product import product_product as ProductProduct
 import datetime as dt
+
+# fixme setup tests based on demo data, test on a clean database
 
 _datetimes = map(
     lambda d: d.strftime('%Y-%m-%d %H:%M:%S'),
@@ -36,7 +40,7 @@ class TestProductTemplate(TransactionCase):
             (self.env['pos.order.line']
                  .create({'create_date': date,
                           'qty': qty,
-                          'product_id': pid
+                          'product_id': pid,
                           })
              )
 
@@ -54,8 +58,11 @@ class TestProductTemplate(TransactionCase):
                 }
             return {pid: mock_data for pid in products.ids}
 
+        # mock area
         ProductTemplate._product_available = _product_available
         ProductProduct._product_available = _product_available
+        Order = namedtuple('Order', ['id', 'state'])
+        PosOrderLine.order_id = Order('1', 'done')
 
         test_product_template._compute_total_consumption()
         self.product_template_id = test_product_template.id
@@ -69,6 +76,7 @@ class TestProductTemplate(TransactionCase):
         self.assertEqual(product.name, 'Test create product')
 
     def test_compute_average_daily_consumption(self):
+        """Test computed field average_daily_consumption"""
         ProductTemplate = self.env['product.template']
         product_template = ProductTemplate.browse(self.product_template_id)
 
@@ -77,6 +85,7 @@ class TestProductTemplate(TransactionCase):
         self.assertAlmostEqual(computed_value, expected_value, 7)
 
     def test_compute_total_consumption(self):
+        """Test total consumption was computed in setup"""
         ProductTemplate = self.env['product.template']
         product_template = ProductTemplate.browse(self.product_template_id)
         computed_value = product_template.total_consumption
@@ -84,6 +93,7 @@ class TestProductTemplate(TransactionCase):
         self.assertAlmostEqual(computed_value, expected_value)
 
     def test_compute_estimated_stock_coverage(self):
+        """Test computed field estimated_stock_coverage"""
         ProductTemplate = self.env['product.template']
         product_template = ProductTemplate.browse(self.product_template_id)
         computed_value = product_template.estimated_stock_coverage
