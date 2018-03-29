@@ -51,13 +51,12 @@ class ProductTemplate(models.Model):
         return True
 
     @api.multi
-    @api.depends('calculation_range')
+    @api.onchange('calculation_range')
     def _compute_total_consumption(self):
         for template in self:
             products = (
                 self.env['product.product']
                     .search([('product_tmpl_id', '=', template.id)]))
-            products_id = products.mapped('id')
 
             today = dt.date.today()
             pol_date_limit = (
@@ -66,13 +65,15 @@ class ProductTemplate(models.Model):
             order_lines = (
                 self.env['pos.order.line']
                     .search([
-                        ('product_id', 'in', products_id),
+                        ('product_id', 'in', products.ids),
                         ('create_date', '>',
                             fields.Datetime.to_string(pol_date_limit))
                 ])
             )
 
-            if len(order_lines) > 0:
+            if order_lines:
+                order_lines = order_lines.filtered(
+                    lambda oi: oi.order_id.state in ['done', 'invoiced', 'paid'])  # noqa
                 res = sum(order_lines.mapped('qty'))
             else:
                 res = 0
@@ -108,7 +109,7 @@ class ProductTemplate(models.Model):
               join pos_order po ON pol.order_id = po.id
               join product_product product ON pol.product_id = product.id
               join product_template template ON product.product_tmpl_id = template.id
-              where po.state = 'done'
+              where po.state in ('done', 'invoiced', 'paid')
                 and template.active
                 and pol.create_date
                     BETWEEN date_trunc('day', now()) - calculation_range * interval '1 days'
