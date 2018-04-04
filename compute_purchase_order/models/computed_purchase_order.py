@@ -42,13 +42,28 @@ class ComputedPurchaseOrder(models.Model):
         string='Order Lines',
     )
 
+    total_amount = fields.Float(
+        string='Total Amount (w/o VAT)',
+        compute='_compute_cpo_total'
+    )
+
     @api.multi
     def make_order(self):
         self.ensure_one()
         return True
+
+    # @api.onchange(order_line_ids)  # fixme change of cpo lines ids and quantity!
+    @api.multi
+    def _compute_cpo_total(self):
+        for cpo in self:
+            total_amount = sum(cpol.subtotal for cpol in cpo.order_line_ids)
+            cpo.total_amount = total_amount
 
     @api.multi
     def _compute_date_planned(self):
         # fixme
         for cpo in self:
             return fields.Datetime.now()
+
+    # def get_supplier_name(self):
+    #     return self.supplier_id.name

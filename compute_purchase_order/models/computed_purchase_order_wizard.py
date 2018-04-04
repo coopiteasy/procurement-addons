@@ -12,7 +12,7 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         'res.partner',
         string='Supplier',
         readonly=True,
-        help='Supplier of the purchase order.')
+        help='Supplier of the purchase order')
 
     product_ids = fields.Many2many(
         'product.template',
@@ -58,6 +58,14 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
             raise ValidationError(
                 'You must select article from a single supplier.')
 
+    def _get_supplierinfo(self, product_tmpl_id):
+        SupplierInfo = self.env['product.supplierinfo']
+        si = SupplierInfo.search([
+            ('product_tmpl_id', '=', product_tmpl_id),
+            ('name', '=', self.supplier_id.id)
+        ])
+        return si
+
     @api.multi
     def create_computed_purchase_order(self):
         self.ensure_one()
@@ -69,7 +77,7 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
 
         cpo_values = {
             'name': cpo_name,
-            'partner_id': self.supplier_id.id,
+            'supplier_id': self.supplier_id.id,
         }
 
         cpo = ComputedPurchaseOrder.create(cpo_values)
@@ -79,6 +87,7 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
             OrderLine.create(
                 {'name': product.name,
                  'computed_purchase_order_id': cpo.id,
+                 'supplierinfo_id': self._get_supplierinfo(product.id).id,
                  'product_template_id': product.id,
                  'category_id': product.categ_id.id,
                  'uom_id': product.uom_id.id,

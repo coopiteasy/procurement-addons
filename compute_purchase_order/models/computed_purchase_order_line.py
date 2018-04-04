@@ -15,6 +15,12 @@ class ComputedPurchaseOrderLine(models.Model):
         string='Computed Purchase Order',
     )
 
+    supplierinfo_id = fields.Many2one(
+        'product.supplierinfo',
+        string='Supplier information',
+        readonly=True,
+    )
+
     category_id = fields.Many2one(
         'product.category',
         string='Internal Category',
@@ -37,6 +43,7 @@ class ComputedPurchaseOrderLine(models.Model):
     stock_qty = fields.Float(
         string='Stock Quantity',
         related='product_template_id.qty_available',
+        read_only=True,
         help='Quantity currently in stock. Does not take '
              'into account incoming orders.')
 
@@ -48,6 +55,7 @@ class ComputedPurchaseOrderLine(models.Model):
     stock_coverage = fields.Float(
         string='Stock Coverage',
         related='product_template_id.estimated_stock_coverage',
+        read_only=True,
     )
 
     purchase_quantity = fields.Float(
@@ -60,29 +68,40 @@ class ComputedPurchaseOrderLine(models.Model):
         string='Purchase Unit of Measure',
         read_only=True,
         required=True,
-        help="Default Unit of Measure used for all stock operation.")  # noqa
+        help="Default Unit of Measure used for all stock operation.")
 
-    # supplier_product_price = fields.Float('Supplier Product Price (w/o VAT)',
-    #                                       help='Supplier Product Price by buying unit. Price is  without VAT')  # noqa
-    #
-    # supplier_product_vat = fields.Float('Supplier Product VAT')
-    #
-    # virtual_coverage = fields.Integer('Expected Stock Coverage',
-    #                                   compute='_compute_virtual_coverage',
-    #                                   help='Expected stock coverage (in days) based on current stocks and average daily consumption')  # noqa
-    #
-    # sub_total = fields.Float('Total Amount (w/o VAT)',
-    #                          compute='_compute_sub_total')
-    #
-    # def _compute_virtual_coverage(self):
-    #     return 231
-    #
-    # def _compute_sub_total(self):
-    #     return 1234.5
+    product_price = fields.Float(
+        string='Product Price (w/o VAT)',
+        related='supplierinfo_id.price',
+        read_only=True,
+        help='Supplier Product Price by buying unit. Price is  without VAT')
 
-    # @api.multi
-    # def _get_product_statistics(self):
-    #     for pol in self:
-    #         pol.stock_qty = pol.product_template_id.qty_available
-    #         pol.average_consumption = pol.product_template_id.average_consumption  # noqa
-    #         pol.stock_coverage = pol.product_template_id.estimated_stock_coverage  # noqa
+    virtual_coverage = fields.Float(
+        string='Expected Stock Coverage',
+        compute='_compute_virtual_coverage',
+        help='Expected stock coverage (in days) based on current stocks and average daily consumption')  # noqa
+
+    subtotal = fields.Float(
+        string='Subtotal (w/o VAT)',
+        compute='_compute_sub_total')
+
+    @api.depends('purchase_quantity')
+    @api.multi
+    def _compute_virtual_coverage(self):
+        for pol in self:
+            avg = pol.average_consumption
+            if avg > 0:
+                qty = pol.stock_qty + pol.purchase_quantity
+                pol.virtual_coverage = qty / avg
+            else:
+                # todo what would be a good default value? (not float(inf))
+                pol.virtual_coverage = 9999
+
+        return True
+
+    @api.depends('purchase_quantity')
+    @api.multi
+    def _compute_sub_total(self):
+        for pol in self:
+            pol.subtotal = pol.product_price * pol.purchase_quantity
+        return True
