@@ -1,49 +1,66 @@
 from openerp import models, fields, api, _
 
 
-class ComputedPurchaseOrderLine(models.TransientModel):
+class ComputedPurchaseOrderLine(models.Model):
     _description = 'Computed Purchase Order Line'
     _name = 'computed.purchase.order.line'
 
-    name = fields.Char('Product Name',
-                       required=True,
-                       read_only=True)
+    name = fields.Char(
+        string='Product Name',
+        required=True,
+        read_only=True)
 
-    category_id = fields.Many2one('product.category',
-                                  'Internal Category',
-                                  required=True,
-                                  read_only=True)
+    computed_purchase_order_id = fields.Many2one(
+        'computed.purchase.order',
+        string='Computed Purchase Order',
+    )
 
-    product_template_id = fields.Many2one('product.template',
-                                          'Linked Product Template',
-                                          required=True,
-                                          help="Linked Product Template")
+    category_id = fields.Many2one(
+        'product.category',
+        string='Internal Category',
+        required=True,
+        read_only=True)
 
-    stock_qty = fields.Float('Stock Quantity',
-                             compute='_get_stock_quantity',
-                             hep='Quantity currently in stock. Does not take '
-                                 'into account incoming orders.')
+    product_template_id = fields.Many2one(
+        'product.template',
+        string='Linked Product Template',
+        required=True,
+        help="Linked Product Template")
 
-    uom_id = fields.Many2one('product.uom',
-                             'Unit of Measure',
-                             required=True,
-                             help="Default Unit of Measure used for all "
-                                  "stock operation.")
+    uom_id = fields.Many2one(
+        'product.uom',
+        string='Unit of Measure',
+        read_only=True,
+        required=True,
+        help="Default Unit of Measure used for all stock operation.")
 
-    average_consumption = fields.Float('Average Consumption',
-                                       read_only=True)
+    stock_qty = fields.Float(
+        string='Stock Quantity',
+        related='product_template_id.qty_available',
+        help='Quantity currently in stock. Does not take '
+             'into account incoming orders.')
 
-    stock_coverage = fields.Float('Stock Coverage',
-                                  read_only=True)
+    average_consumption = fields.Float(
+        string='Average Consumption',
+        related='product_template_id.average_consumption',
+        read_only=True)
 
-    purchase_quantity = fields.Float('Purchase Quantity',
-                                     required=True,
-                                     default=0.)
+    stock_coverage = fields.Float(
+        string='Stock Coverage',
+        related='product_template_id.estimated_stock_coverage',
+    )
 
-    uom_po_id = fields.Many2one('product.uom',
-                                'Purchase Unit of Measure',
-                                required=True,
-                                help="Default Unit of Measure used for all stock operation.")  # noqa
+    purchase_quantity = fields.Float(
+        string='Purchase Quantity',
+        required=True,
+        default=0.)
+
+    uom_po_id = fields.Many2one(
+        'product.uom',
+        string='Purchase Unit of Measure',
+        read_only=True,
+        required=True,
+        help="Default Unit of Measure used for all stock operation.")  # noqa
 
     # supplier_product_price = fields.Float('Supplier Product Price (w/o VAT)',
     #                                       help='Supplier Product Price by buying unit. Price is  without VAT')  # noqa
@@ -63,7 +80,9 @@ class ComputedPurchaseOrderLine(models.TransientModel):
     # def _compute_sub_total(self):
     #     return 1234.5
 
-    @api.multi
-    def _get_stock_quantity(self):
-        for pol in self:
-            pol.stock_qty = pol.product_template_id.qty_available
+    # @api.multi
+    # def _get_product_statistics(self):
+    #     for pol in self:
+    #         pol.stock_qty = pol.product_template_id.qty_available
+    #         pol.average_consumption = pol.product_template_id.average_consumption  # noqa
+    #         pol.stock_coverage = pol.product_template_id.estimated_stock_coverage  # noqa

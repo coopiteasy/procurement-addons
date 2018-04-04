@@ -9,9 +9,12 @@
     'license': 'AGPL-3',
     'depends': [
         'product',
+        'purchase',
         'stock',
+        'stock_coverage',
     ],
     'data': [
-        'views/compute_purchase_order.xml',
+        'views/computed_purchase_order.xml',
+        'views/computed_purchase_order_wizard.xml',
     ],
 }

@@ -1,0 +1,49 @@
+<odoo>
+
+  <!-- views-->
+
+<record id="view_form_purchase_order_wizard" model="ir.ui.view">
+    <field name="name">view_form_purchase_order_wizard</field>
+    <field name="model">computed.purchase.order.wizard</field>
+    <field name="arch" type="xml">
+      <form>
+
+        <group>
+          <field name="supplier_id" />
+        </group>
+
+        <field name="product_ids">
+          <tree>
+            <field name="name"/>
+            <field name="categ_id"/>
+            <field name="qty_available"/>
+            <field name="uom_id"/>
+            <field name="average_consumption"/>
+            <field name="estimated_stock_coverage"/>
+          </tree>
+        </field>
+
+        <footer>
+          <button type="object"
+                  name="create_computed_purchase_order"
+                  string="Create CPO"/>
+          <button special="cancel" string="Cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+
+  <!-- Actions -->
+
+  <act_window id="action_view_form_purchase_order_wizard"
+              name="Compute purchase order"
+              src_model="product.template"
+              res_model="computed.purchase.order.wizard"
+              view_mode="form"
+              view_id="view_form_purchase_order_wizard"
+              target="new"
+              key2="client_action_multi"
+    />
+
+</odoo>
