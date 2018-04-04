@@ -9,12 +9,9 @@
     'license': 'AGPL-3',
     'depends': [
         'product',
-        'beesdoo_product',  # for main seller ids
         'stock',
-        'product_average_consumption',
     ],
     'data': [
         'views/compute_purchase_order.xml',
-        'views/sales_preparation.xml',
     ],
 }

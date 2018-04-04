@@ -8,16 +8,19 @@
 
         <group>
           <field name="order_date" />
-          <!--<field name="partner_id" />-->
+          <field name="supplier_id" />
         </group>
 
         <field name="order_line_ids">
-          <tree>
+          <tree editable="top">
             <field name="name"/>
-            <field name="categ_id"/>
-            <field name="main_seller_id"/>
-            <field name="qty_available"/>
-            <field name="estimated_stock_coverage"/>
+            <field name="category_id"/>
+            <field name="stock_qty"/>
+            <field name="uom_id"/>
+            <field name="average_consumption"/>
+            <field name="stock_coverage"/>
+            <field name="purchase_quantity"/>
+            <field name="uom_po_id"/>
           </tree>
         </field>
 
