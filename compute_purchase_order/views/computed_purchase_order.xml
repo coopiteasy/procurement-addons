@@ -8,11 +8,13 @@
     <field name="model">computed.purchase.order</field>
     <field name="arch" type="xml">
       <tree>
-            <field name="name"/>
-            <field name="supplier_id"/>
-            <field name="order_date"/>
-            <field name="date_planned"/>
-            <field name="total_amount"/>
+        <field name="name"/>
+        <field name="supplier_id"/>
+        <field name="order_date"/>
+        <field name="date_planned"/>
+        <field name="total_amount"/>
+        <field name="generated_purchase_order_id"/>
+        <field name="state"/>
       </tree>
     </field>
   </record>
@@ -27,6 +29,10 @@
           <button type="object"
                   name="create_purchase_order"
                   string="Create Purchase Order"/>
+          <field name="state"
+                  widget="statusbar"
+                  clickable="False"
+                  options="{'fold_field': 'fold'}" />
         </header>
 
         <sheet>
@@ -54,10 +60,33 @@
           </field>
         </sheet>
 
+        <footer>
+          <button type="object"
+                  name='cancel_cpo'
+                  string="Cancel CPO"/>
+        </footer>
+
       </form>
     </field>
   </record>
 
+
+
+  <!-- filters-->
+  <record id="computed_purchase_order_filter" model="ir.ui.view">
+    <field name="model">computed.purchase.order</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="supplier_id"/>
+        <filter string="Hide cancelled"
+                name="not_cancelled"
+                domain="[('state', '!=', 'cancelled')]"/>
+        <filter string="Draft"
+                name="draft"
+                domain="[('state', '=', 'draft')]"/>
+      </search>
+    </field>
+  </record>
 
   <!-- Menu item -->
 
@@ -67,7 +96,7 @@
       <field name="res_model">computed.purchase.order</field>
       <field name="view_mode">tree,form</field>
       <field name="view_id" eval="computed_purchase_order_tree"/>
-      <!--<field name="context">{'search_default_filter_purchase_ok': 1}</field>-->
+      <field name="context">{'search_default_not_cancelled': 1}</field>
   </record>
 
   <menuitem id="computed_purchase_order"

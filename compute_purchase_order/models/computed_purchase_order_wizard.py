@@ -71,8 +71,12 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         self.ensure_one()
         ComputedPurchaseOrder = self.env['computed.purchase.order']
 
+        cpo_name = 'CPO {} {}'.format(
+            self.supplier_id.name,
+            fields.Date.today())
+
         cpo_values = {
-            'name': 'New',
+            'name': cpo_name,
             'supplier_id': self.supplier_id.id,
         }
 

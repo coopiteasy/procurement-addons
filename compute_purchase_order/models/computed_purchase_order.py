@@ -14,8 +14,14 @@ class ComputedPurchaseOrder(models.Model):
     _name = 'computed.purchase.order'
     _order = 'id desc'
 
+    _STATE = [
+        ('draft', 'Draft'),
+        ('done', 'Done'),
+        ('cancelled', 'Cancelled'),
+    ]
+
     name = fields.Char(
-        string='Computed Purchase Order Reference',
+        string='CPO Reference',
         size=64,
         default='New')
 
@@ -25,7 +31,7 @@ class ComputedPurchaseOrder(models.Model):
         help="Depicts the date where the Quotation should be validated and converted into a purchase order.")  # noqa
 
     date_planned = fields.Datetime(
-        string='Scheduled Date'
+        string='Date Planned'
     )
 
     supplier_id = fields.Many2one(
@@ -44,6 +50,18 @@ class ComputedPurchaseOrder(models.Model):
         string='Total Amount (w/o VAT)',
         compute='_compute_cpo_total'
     )
+
+    generated_purchase_order_id = fields.Many2one(
+        'purchase.order',
+        'Generated PO'
+    )
+
+    state = fields.Selection(
+        _STATE,
+        'State',
+        required=True,
+        default='draft')
+
 
     @api.model
     def default_get(self, fields_list):
@@ -68,7 +86,7 @@ class ComputedPurchaseOrder(models.Model):
         PurchaseOrderLine = self.env['purchase.order.line']
 
         po_values = {
-            'name': self.name,
+            'name': 'New',
             'date_order': self.order_date,
             'partner_id': self.supplier_id.id,
             'date_planned': self.date_planned,
@@ -87,6 +105,9 @@ class ComputedPurchaseOrder(models.Model):
             }
             PurchaseOrderLine.create(pol_values)
 
+        self.generated_purchase_order_id = purchase_order.id
+        self.state = 'done'
+
         action = {
             'type': 'ir.actions.act_window',
             'res_model': 'purchase.order',
@@ -96,3 +117,8 @@ class ComputedPurchaseOrder(models.Model):
             'target': 'current',
         }
         return action
+
+    @api.multi
+    def cancel_cpo(self):
+        for cpo in self:
+            cpo.state = 'cancelled'
