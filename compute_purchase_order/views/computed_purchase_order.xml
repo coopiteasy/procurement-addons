@@ -24,26 +24,30 @@
     <field name="arch" type="xml">
       <form>
         <header>
+          <button type="object"
+                  name="create_purchase_order"
+                  string="Create Purchase Order"/>
         </header>
-        <sheet>
 
+        <sheet>
           <group>
             <field name="supplier_id" />
             <field name="order_date" />
+            <field name="date_planned"/>
             <field name="total_amount"/>
           </group>
 
           <field name="order_line_ids">
-            <tree editable="bottom">
-              <field name="name"/>
-              <field name="category_id"/>
+            <tree string="Order Lines" editable="bottom">
+              <field name="name" readonly='1'/>
+              <field name="category_id" readonly='1'/>
               <field name="stock_qty"/>
-              <field name="uom_id"/>
+              <field name="uom_id" readonly='1'/>
               <field name="average_consumption"/>
               <field name="stock_coverage"/>
               <field name="virtual_coverage"/>
-              <field name="uom_po_id"/>
-              <field name="product_price"/>
+              <field name="product_price" readonly='1'/>
+              <field name="uom_po_id" readonly='1'/>
               <field name="purchase_quantity"/>
               <field name="subtotal"/>
             </tree>

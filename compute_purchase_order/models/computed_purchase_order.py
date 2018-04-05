@@ -17,8 +17,7 @@ class ComputedPurchaseOrder(models.Model):
     name = fields.Char(
         string='Computed Purchase Order Reference',
         size=64,
-        required=True,
-        default='Draft Purchase Order')
+        default='New')
 
     order_date = fields.Datetime(
         string='Purchase Order Date',
@@ -26,9 +25,8 @@ class ComputedPurchaseOrder(models.Model):
         help="Depicts the date where the Quotation should be validated and converted into a purchase order.")  # noqa
 
     date_planned = fields.Datetime(
-        string='Scheduled Date',
-        compute='_compute_date_planned',
-        required=True)
+        string='Scheduled Date'
+    )
 
     supplier_id = fields.Many2one(
         'res.partner',
@@ -47,12 +45,16 @@ class ComputedPurchaseOrder(models.Model):
         compute='_compute_cpo_total'
     )
 
-    @api.multi
-    def make_order(self):
-        self.ensure_one()
-        return True
+    @api.model
+    def default_get(self, fields_list):
+        record = super(ComputedPurchaseOrder, self).default_get(fields_list)
+        record['date_planned'] = self._get_default_date_planned()
+        return record
 
-    # @api.onchange(order_line_ids)  # fixme change of cpo lines ids and quantity!
+    def _get_default_date_planned(self):
+        return fields.Datetime.now()
+
+    # @api.onchange(order_line_ids)  # fixme
     @api.multi
     def _compute_cpo_total(self):
         for cpo in self:
@@ -60,10 +62,37 @@ class ComputedPurchaseOrder(models.Model):
             cpo.total_amount = total_amount
 
     @api.multi
-    def _compute_date_planned(self):
-        # fixme
-        for cpo in self:
-            return fields.Datetime.now()
+    def create_purchase_order(self):
+        self.ensure_one()
+        PurchaseOrder = self.env['purchase.order']
+        PurchaseOrderLine = self.env['purchase.order.line']
 
-    # def get_supplier_name(self):
-    #     return self.supplier_id.name
+        po_values = {
+            'name': self.name,
+            'date_order': self.order_date,
+            'partner_id': self.supplier_id.id,
+            'date_planned': self.date_planned,
+        }
+        purchase_order = PurchaseOrder.create(po_values)
+
+        for cpo_line in self.order_line_ids:
+            pol_values = {
+                'name': cpo_line.name,
+                'product_id': cpo_line.get_default_product_product().id,
+                'product_qty': cpo_line.purchase_quantity,
+                'price_unit': cpo_line.product_price,
+                'product_uom': cpo_line.uom_po_id.id,
+                'order_id': purchase_order.id,
+                'date_planned': self.date_planned,
+            }
+            PurchaseOrderLine.create(pol_values)
+
+        action = {
+            'type': 'ir.actions.act_window',
+            'res_model': 'purchase.order',
+            'res_id': purchase_order.id,
+            'view_type': 'form',
+            'view_mode': 'form',
+            'target': 'current',
+        }
+        return action

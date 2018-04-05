@@ -1,4 +1,5 @@
 from openerp import models, fields, api, _
+from openerp.exceptions import ValidationError
 
 
 class ComputedPurchaseOrderLine(models.Model):
@@ -105,3 +106,24 @@ class ComputedPurchaseOrderLine(models.Model):
         for pol in self:
             pol.subtotal = pol.product_price * pol.purchase_quantity
         return True
+
+    @api.multi
+    def get_default_product_product(self):
+        self.ensure_one()
+        ProductProduct = self.env['product.product']
+        products = ProductProduct.search([
+            ('product_tmpl_id', '=', self.product_template_id.id)
+        ])
+
+        products = products.sorted(
+            key=lambda product: product.create_date,
+            reverse=True
+        )
+
+        if products:
+            return products[0]
+        else:
+            raise ValidationError(
+                '%s:%s template has no variant set'
+                % (self.product_template_id.id, self.product_template_id.name)
+            )
