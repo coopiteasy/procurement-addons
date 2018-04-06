@@ -10,6 +10,7 @@
 
         <group>
           <field name="supplier_id" />
+          <field name="is_cpo_set" invisible='1'/>
         </group>
 
         <field name="product_ids">
@@ -26,7 +27,16 @@
         <footer>
           <button type="object"
                   name="create_computed_purchase_order"
-                  string="Create CPO"/>
+                  string="Create CPO"
+                  class="oe_highlight"
+                  attrs="{'invisible':[('is_cpo_set', '=', True)]}"
+          />
+          <button type="object"
+                  name="add_products_to_cpo"
+                  string="Add Products to CPO"
+                  class="oe_highlight"
+                  attrs="{'invisible':[('is_cpo_set', '=', False)]}"
+          />
           <button special="cancel" string="Cancel"/>
         </footer>
       </form>

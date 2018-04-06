@@ -19,6 +19,16 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         string='Staged products for cpo',
     )
 
+    computed_purchase_order_id = fields.Many2one(
+        'computed.purchase.order',
+        string='Target CPO'
+    )
+
+    is_cpo_set = fields.Boolean(
+        string='Is CPO set',
+        compute='_is_cpo_set'
+    )
+
     @api.model
     def default_get(self, fields):
         record = super(ComputedPurchaseOrderWizard, self).default_get(fields)
@@ -28,8 +38,27 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
 
         return record
 
+    @api.multi
+    def _is_cpo_set(self):
+        for cpow in self:
+            if cpow.computed_purchase_order_id:
+                cpow.is_cpo_set = True
+            else:
+                cpow.is_cpo_set = False
+
     def _get_selected_products(self):
         return self.env.context['active_ids']
+
+    def _get_main_supplier(self, product_template):
+        supplier_ids = product_template.seller_ids.sorted(
+            key=lambda seller: seller.date_start,
+            reverse=True)
+
+        if supplier_ids:
+            return supplier_ids[0].name
+        else:
+            raise ValidationError(
+                'No supplier set for product %s' % product_template)
 
     def _get_selected_supplier(self):
         """
@@ -37,18 +66,13 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         plus petite qu’aujourd’hui pour chaque article sélectionné.
         Will raise an error if more than two sellers are set
         """
-        product_ids = self.env.context['active_ids']
+        product_ids = self.env.context['active_ids']  # may be cpo if coming form cpo
         products = self.env['product.template'].browse(product_ids)
 
         suppliers = set()
         for product in products:
-            supplier_ids = product.seller_ids.sorted(
-                key=lambda seller: seller.date_start,
-                reverse=True)
-
-            if supplier_ids:
-                main_supplier_id = supplier_ids[0].name.id
-                suppliers.add(main_supplier_id)
+            main_supplier_id = self._get_main_supplier(product).id
+            suppliers.add(main_supplier_id)
 
         if len(suppliers) == 0:
             raise ValidationError('No supplier is set for selected articles.')
@@ -78,6 +102,7 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         cpo_values = {
             'name': cpo_name,
             'supplier_id': self.supplier_id.id,
+            # pass product template and not product product
         }
 
         cpo = ComputedPurchaseOrder.create(cpo_values)
@@ -96,6 +121,43 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
                  'uom_po_id': product.uom_po_id.id
                  }
             )
+
+        action = {
+            'type': 'ir.actions.act_window',
+            'res_model': 'computed.purchase.order',
+            'res_id': cpo.id,
+            'view_type': 'form',
+            'view_mode': 'form',
+            'target': 'current',
+        }
+        return action
+
+    @api.multi
+    def add_products_to_cpo(self):
+        self.ensure_one()
+        cpo = self.computed_purchase_order_id
+
+        OrderLine = self.env['computed.purchase.order.line']
+        for product in self.product_ids:
+
+            if self.supplier_id != self._get_main_supplier(product):
+                raise ValidationError('You can only add products from '
+                                      'selected supplier')
+
+            if not cpo.contains_product(product):
+
+                OrderLine.create(
+                    {'name': product.name,
+                     'computed_purchase_order_id': cpo.id,
+                     'supplierinfo_id': self._get_supplierinfo(product.id).id,
+                     'product_template_id': product.id,
+                     'category_id': product.categ_id.id,
+                     'uom_id': product.uom_id.id,
+                     'average_consumption': product.average_consumption,
+                     'stock_coverage': product.estimated_stock_coverage,
+                     'uom_po_id': product.uom_po_id.id
+                     }
+                )
 
         action = {
             'type': 'ir.actions.act_window',

@@ -62,7 +62,6 @@ class ComputedPurchaseOrder(models.Model):
         required=True,
         default='draft')
 
-
     @api.model
     def default_get(self, fields_list):
         record = super(ComputedPurchaseOrder, self).default_get(fields_list)
@@ -119,6 +118,40 @@ class ComputedPurchaseOrder(models.Model):
         return action
 
     @api.multi
+    def add_products(self):
+        self.ensure_one()
+
+        CPOW = self.env['computed.purchase.order.wizard']
+
+        product_tmpl_ids = self.order_line_ids.mapped('product_template_id').ids
+        product_tmpl__tuples = [
+            (6, 0, product_tmpl_ids)
+        ]
+
+        cpow = CPOW.create({
+            'computed_purchase_order_id': self.id,
+            'supplier_id': self.supplier_id.id,
+            'product_ids': [(6, 0, product_tmpl_ids)]
+        })
+
+        action = {
+            'type': 'ir.actions.act_window',
+            'name': 'Change product selection',
+            'res_model': 'computed.purchase.order.wizard',
+            'res_id': cpow.id,
+            'view_mode': 'form',
+            'view_id': self.env.ref('compute_purchase_order.view_form_purchase_order_wizard').id,
+            'target': 'new',
+        }
+        return action
+
+    @api.multi
     def cancel_cpo(self):
         for cpo in self:
             cpo.state = 'cancelled'
+
+    def contains_product(self, product_template):
+        linked_products = self.order_line_ids.mapped('product_template_id')
+        return product_template in linked_products
+
+

@@ -28,7 +28,11 @@
         <header>
           <button type="object"
                   name="create_purchase_order"
-                  string="Create Purchase Order"/>
+                  string="Create Purchase Order"
+                  class="oe_highlight"/>
+          <button type="object"
+                  name="add_products"
+                  string="Add Products to CPO"/>
           <field name="state"
                   widget="statusbar"
                   clickable="False"
@@ -44,7 +48,7 @@
           </group>
 
           <field name="order_line_ids">
-            <tree string="Order Lines" editable="bottom">
+            <tree string="Order Lines">
               <field name="name" readonly='1'/>
               <field name="category_id" readonly='1'/>
               <field name="stock_qty"/>
@@ -69,8 +73,6 @@
       </form>
     </field>
   </record>
-
-
 
   <!-- filters-->
   <record id="computed_purchase_order_filter" model="ir.ui.view">
