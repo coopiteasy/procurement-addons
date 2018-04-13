@@ -6,27 +6,10 @@ class ComputedPurchaseOrderLine(models.Model):
     _description = 'Computed Purchase Order Line'
     _name = 'computed.purchase.order.line'
 
-    name = fields.Char(
-        string='Product Name',
-        required=True,
-        read_only=True)
-
     computed_purchase_order_id = fields.Many2one(
         'computed.purchase.order',
         string='Computed Purchase Order',
     )
-
-    supplierinfo_id = fields.Many2one(
-        'product.supplierinfo',
-        string='Supplier information',
-        readonly=True,
-    )
-
-    category_id = fields.Many2one(
-        'product.category',
-        string='Internal Category',
-        required=True,
-        read_only=True)
 
     product_template_id = fields.Many2one(
         'product.template',
@@ -34,11 +17,29 @@ class ComputedPurchaseOrderLine(models.Model):
         required=True,
         help="Linked Product Template")
 
+    name = fields.Char(
+        string='Product Name',
+        related='product_template_id.name',
+        read_only=True)
+
+    supplierinfo_id = fields.Many2one(
+        'product.supplierinfo',
+        string='Supplier information',
+        compute='_compute_supplierinfo',
+        readonly=True,
+    )
+
+    category_id = fields.Many2one(
+        'product.category',
+        string='Internal Category',
+        related='product_template_id.categ_id',
+        read_only=True)
+
     uom_id = fields.Many2one(
         'product.uom',
         string='Unit of Measure',
         read_only=True,
-        required=True,
+        related='product_template_id.uom_id',
         help="Default Unit of Measure used for all stock operation.")
 
     stock_qty = fields.Float(
@@ -68,7 +69,7 @@ class ComputedPurchaseOrderLine(models.Model):
         'product.uom',
         string='Purchase Unit of Measure',
         read_only=True,
-        required=True,
+        related='product_template_id.uom_po_id',
         help="Default Unit of Measure used for all stock operation.")
 
     product_price = fields.Float(
@@ -106,6 +107,16 @@ class ComputedPurchaseOrderLine(models.Model):
         for pol in self:
             pol.subtotal = pol.product_price * pol.purchase_quantity
         return True
+
+    @api.multi
+    def _compute_supplierinfo(self):
+        for cpol in self:
+            SupplierInfo = self.env['product.supplierinfo']
+            si = SupplierInfo.search([
+                ('product_tmpl_id', '=', cpol.product_template_id.id),
+                ('name', '=', cpol.product_template_id.get_main_supplier().id)
+            ])
+            cpol.supplierinfo_id = si
 
     @api.multi
     def get_default_product_product(self):

@@ -33,6 +33,9 @@
           <button type="object"
                   name="add_products"
                   string="Add Products to CPO"/>
+          <button type="object"
+                  name='cancel_cpo'
+                  string="Cancel CPO"/>
           <field name="state"
                   widget="statusbar"
                   clickable="False"
@@ -48,27 +51,22 @@
           </group>
 
           <field name="order_line_ids">
-            <tree string="Order Lines">
-              <field name="name" readonly='1'/>
-              <field name="category_id" readonly='1'/>
+            <tree string="Order Lines" editable='bottom'>
+              <field name="product_template_id"/>
+              <field name="category_id"/>
               <field name="stock_qty"/>
-              <field name="uom_id" readonly='1'/>
+              <field name="uom_id"/>
               <field name="average_consumption"/>
               <field name="stock_coverage"/>
               <field name="virtual_coverage"/>
-              <field name="product_price" readonly='1'/>
-              <field name="uom_po_id" readonly='1'/>
+              <field name="product_price"/>
+              <field name="uom_po_id"/>
               <field name="purchase_quantity"/>
               <field name="subtotal"/>
             </tree>
           </field>
         </sheet>
 
-        <footer>
-          <button type="object"
-                  name='cancel_cpo'
-                  string="Cancel CPO"/>
-        </footer>
 
       </form>
     </field>

@@ -49,17 +49,6 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
     def _get_selected_products(self):
         return self.env.context['active_ids']
 
-    def _get_main_supplier(self, product_template):
-        supplier_ids = product_template.seller_ids.sorted(
-            key=lambda seller: seller.date_start,
-            reverse=True)
-
-        if supplier_ids:
-            return supplier_ids[0].name
-        else:
-            raise ValidationError(
-                'No supplier set for product %s' % product_template)
-
     def _get_selected_supplier(self):
         """
         Calcule le vendeur associé qui a la date de début la plus récente et
@@ -71,7 +60,7 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
 
         suppliers = set()
         for product in products:
-            main_supplier_id = self._get_main_supplier(product).id
+            main_supplier_id = product.get_main_supplier().id
             suppliers.add(main_supplier_id)
 
         if len(suppliers) == 0:
@@ -81,14 +70,6 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         else:
             raise ValidationError(
                 'You must select article from a single supplier.')
-
-    def _get_supplierinfo(self, product_tmpl_id):
-        SupplierInfo = self.env['product.supplierinfo']
-        si = SupplierInfo.search([
-            ('product_tmpl_id', '=', product_tmpl_id),
-            ('name', '=', self.supplier_id.id)
-        ])
-        return si
 
     @api.multi
     def create_computed_purchase_order(self):
@@ -102,7 +83,6 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         cpo_values = {
             'name': cpo_name,
             'supplier_id': self.supplier_id.id,
-            # pass product template and not product product
         }
 
         cpo = ComputedPurchaseOrder.create(cpo_values)
@@ -112,13 +92,8 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
             OrderLine.create(
                 {'name': product.name,
                  'computed_purchase_order_id': cpo.id,
-                 'supplierinfo_id': self._get_supplierinfo(product.id).id,
                  'product_template_id': product.id,
-                 'category_id': product.categ_id.id,
-                 'uom_id': product.uom_id.id,
-                 'average_consumption': product.average_consumption,
-                 'stock_coverage': product.estimated_stock_coverage,
-                 'uom_po_id': product.uom_po_id.id
+                  # pass product product and not product template?
                  }
             )
 
@@ -140,7 +115,7 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
         OrderLine = self.env['computed.purchase.order.line']
         for product in self.product_ids:
 
-            if self.supplier_id != self._get_main_supplier(product):
+            if self.supplier_id != product.get_main_supplier():
                 raise ValidationError('You can only add products from '
                                       'selected supplier')
 
@@ -149,13 +124,7 @@ class ComputedPurchaseOrderWizard(models.TransientModel):
                 OrderLine.create(
                     {'name': product.name,
                      'computed_purchase_order_id': cpo.id,
-                     'supplierinfo_id': self._get_supplierinfo(product.id).id,
                      'product_template_id': product.id,
-                     'category_id': product.categ_id.id,
-                     'uom_id': product.uom_id.id,
-                     'average_consumption': product.average_consumption,
-                     'stock_coverage': product.estimated_stock_coverage,
-                     'uom_po_id': product.uom_po_id.id
                      }
                 )
 

@@ -2,12 +2,6 @@
 from openerp import models, fields, api, _
 from openerp.exceptions import ValidationError
 
-_TARGET_DOC = '''This defines the amount of products you want to purchase.
-The system will compute a purchase order based on the stock you have and the average consumption of each product.
-* Target type "€": computed purchase order will cost at least the amount specified.
-* Target type "days": computed purchase order will last at least the number of days specified (according to current average consumption).
-* Target type "kg": computed purchase order will weight at least the weight specified.'''
-
 
 class ComputedPurchaseOrder(models.Model):
     _description = 'Computed Purchase Order'
