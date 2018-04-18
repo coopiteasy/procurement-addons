@@ -8,12 +8,6 @@ class ComputedPurchaseOrder(models.Model):
     _name = 'computed.purchase.order'
     _order = 'id desc'
 
-    _STATE = [
-        ('draft', 'Draft'),
-        ('done', 'Done'),
-        ('cancelled', 'Cancelled'),
-    ]
-
     name = fields.Char(
         string='CPO Reference',
         size=64,
@@ -30,7 +24,7 @@ class ComputedPurchaseOrder(models.Model):
 
     supplier_id = fields.Many2one(
         'res.partner',
-        'Supplier',
+        string='Supplier',
         readonly=True,
         help="Supplier of the purchase order.")
 
@@ -45,16 +39,10 @@ class ComputedPurchaseOrder(models.Model):
         compute='_compute_cpo_total'
     )
 
-    generated_purchase_order_id = fields.Many2one(
+    generated_purchase_order_ids = fields.Many2many(
         'purchase.order',
-        'Generated PO'
+        string='Generated Purchase Orders'
     )
-
-    state = fields.Selection(
-        _STATE,
-        'State',
-        required=True,
-        default='draft')
 
     @api.model
     def default_get(self, fields_list):
@@ -98,8 +86,7 @@ class ComputedPurchaseOrder(models.Model):
             }
             PurchaseOrderLine.create(pol_values)
 
-        self.generated_purchase_order_id = purchase_order.id
-        self.state = 'done'
+        self.generated_purchase_order_ids += purchase_order
 
         action = {
             'type': 'ir.actions.act_window',
@@ -118,9 +105,6 @@ class ComputedPurchaseOrder(models.Model):
         CPOW = self.env['computed.purchase.order.wizard']
 
         product_tmpl_ids = self.order_line_ids.mapped('product_template_id').ids
-        product_tmpl__tuples = [
-            (6, 0, product_tmpl_ids)
-        ]
 
         cpow = CPOW.create({
             'computed_purchase_order_id': self.id,
@@ -138,11 +122,6 @@ class ComputedPurchaseOrder(models.Model):
             'target': 'new',
         }
         return action
-
-    @api.multi
-    def cancel_cpo(self):
-        for cpo in self:
-            cpo.state = 'cancelled'
 
     def contains_product(self, product_template):
         linked_products = self.order_line_ids.mapped('product_template_id')
