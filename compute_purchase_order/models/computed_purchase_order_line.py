@@ -60,6 +60,11 @@ class ComputedPurchaseOrderLine(models.Model):
         read_only=True,
     )
 
+    minimum_purchase_qty = fields.Float(
+        string='Minimum Purchase Quantity',
+        related='supplierinfo_id.min_qty',
+    )
+
     purchase_quantity = fields.Float(
         string='Purchase Quantity',
         required=True,
@@ -117,6 +122,20 @@ class ComputedPurchaseOrderLine(models.Model):
                 ('name', '=', cpol.product_template_id.get_main_supplier().id)
             ])
             cpol.supplierinfo_id = si
+
+    @api.constrains('purchase_quantity')
+    def _check_minimum_purchase_quantity(self):
+        for cpol in self:
+            if cpol.purchase_quantity < 0:
+                raise ValidationError(
+                    'Purchase quantity for {product_name} must be greater than 0'
+                    .format(product_name=cpol.product_template_id.name))
+            elif 0 < cpol.purchase_quantity < cpol.minimum_purchase_qty:
+                raise ValidationError(
+                    'Purchase quantity for {product_name} must be greater '
+                    'than {min_qty}'
+                    .format(product_name=cpol.product_template_id.name,
+                            min_qty=cpol.minimum_purchase_qty))
 
     @api.multi
     def get_default_product_product(self):
