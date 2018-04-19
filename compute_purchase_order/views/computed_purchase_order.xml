@@ -13,7 +13,6 @@
         <field name="order_date"/>
         <field name="date_planned"/>
         <field name="total_amount"/>
-        <!--<field name="generated_purchase_order_ids"/>-->
       </tree>
     </field>
   </record>
@@ -36,10 +35,26 @@
 
         <sheet>
           <group>
-            <field name="supplier_id" />
-            <field name="order_date" />
-            <field name="date_planned"/>
-            <field name="total_amount"/>
+            <group class="oe_left">
+              <field name="supplier_id" />
+              <field name="order_date" />
+              <field name="date_planned"/>
+              <field name="total_amount"/>
+              <field name="generated_purchase_order_ids" invisible='1'/>
+            </group>
+
+            <div name="buttons" class="oe_right oe_button_box">
+               <button class="oe_inline oe_stat_button"
+                       type="object"
+                       icon="fa-shopping-cart"
+                       name="get_generated_po_action"
+                       help="Generated Purchase Orders" >
+                 <field string="Purchase orders"
+                        name="generated_po_count"
+                        widget="statinfo"/>
+               </button>
+            </div>
+
           </group>
 
           <field name="order_line_ids">

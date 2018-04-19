@@ -44,6 +44,11 @@ class ComputedPurchaseOrder(models.Model):
         string='Generated Purchase Orders'
     )
 
+    generated_po_count = fields.Integer(
+        string='Generated Purchase Order count',
+        compute='_compute_generated_po_count',
+    )
+
     @api.model
     def default_get(self, fields_list):
         record = super(ComputedPurchaseOrder, self).default_get(fields_list)
@@ -52,6 +57,24 @@ class ComputedPurchaseOrder(models.Model):
 
     def _get_default_date_planned(self):
         return fields.Datetime.now()
+
+    @api.multi
+    def _compute_generated_po_count(self):
+        for cpo in self:
+            cpo.generated_po_count = len(cpo.generated_purchase_order_ids)
+
+    @api.multi
+    def get_generated_po_action(self):
+        self.ensure_one()
+        print self.generated_purchase_order_ids.ids
+        action = {
+            'type': 'ir.actions.act_window',
+            'res_model': 'purchase.order',
+            'view_mode': 'tree,form,kanban',
+            'target': 'current',
+            'domain': [('id', 'in', self.generated_purchase_order_ids.ids)],
+        }
+        return action
 
     # @api.onchange(order_line_ids)  # fixme
     @api.multi
