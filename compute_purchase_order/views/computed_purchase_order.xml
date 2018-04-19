@@ -59,17 +59,17 @@
 
           <field name="order_line_ids">
             <tree string="Order Lines" editable='bottom'>
-              <field name="product_template_id"/>
-              <field name="category_id"/>
-              <field name="stock_qty"/>
-              <field name="uom_id"/>
-              <field name="average_consumption"/>
-              <field name="stock_coverage"/>
-              <field name="virtual_coverage"/>
-              <field name="product_price"/>
-              <field name="uom_po_id"/>
+              <field name="product_template_id" readonly='1'/>
+              <field name="category_id" readonly='1'/>
+              <field name="stock_qty" readonly='1'/>
+              <field name="uom_id" readonly='1'/>
+              <field name="average_consumption" readonly='1'/>
+              <field name="stock_coverage" readonly='1'/>
+              <field name="virtual_coverage" readonly='1'/>
+              <field name="product_price" readonly='1'/>
+              <field name="uom_po_id" readonly='1'/>
               <field name="purchase_quantity"/>
-              <field name="subtotal"/>
+              <field name="subtotal" readonly='1'/>
             </tree>
           </field>
         </sheet>
