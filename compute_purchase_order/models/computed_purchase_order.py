@@ -54,32 +54,9 @@ class ComputedPurchaseOrder(models.Model):
         record = super(ComputedPurchaseOrder, self).default_get(fields_list)
 
         record['date_planned'] = self._get_default_date_planned()
-
-        supplier_id = self._get_selected_supplier()
-        record['supplier_id'] = supplier_id
-
-        product_tmpl_ids = self._get_selected_products()
-        cpol_ids = []
-        OrderLine = self.env['computed.purchase.order.line']
-        for product_id in product_tmpl_ids:
-            cpol = OrderLine.create(
-                {'computed_purchase_order_id': self.id,
-                 'product_template_id': product_id,
-                 # pass product product and not product template?
-                 }
-            )
-            cpol_ids.append(cpol.id)
-
-        record['order_line_ids'] = cpol_ids
-
-        supplier_name = (
-            self.env['res.partner']
-                .browse(supplier_id)
-                .name)
-
-        record['name'] = u'CPO {} {}'.format(
-            supplier_name,
-            fields.Date.today())
+        record['supplier_id'] = self._get_selected_supplier()
+        record['order_line_ids'] = self._create_order_lines()
+        record['name'] = self._compute_default_name()
 
         return record
 
@@ -87,7 +64,23 @@ class ComputedPurchaseOrder(models.Model):
         return fields.Datetime.now()
 
     def _get_selected_products(self):
-        return self.env.context['active_ids']
+        if 'active_ids' in self.env.context:
+            return self.env.context['active_ids']
+        else:
+            return []
+
+    def _create_order_lines(self):
+        product_tmpl_ids = self._get_selected_products()
+        cpol_ids = []
+        OrderLine = self.env['computed.purchase.order.line']
+        for product_id in product_tmpl_ids:
+            cpol = OrderLine.create(
+                {'computed_purchase_order_id': self.id,
+                 'product_template_id': product_id,
+                 }
+            )
+            cpol_ids.append(cpol.id)
+        return cpol_ids
 
     def _get_selected_supplier(self):
         """
@@ -95,6 +88,9 @@ class ComputedPurchaseOrder(models.Model):
         plus petite qu’aujourd’hui pour chaque article sélectionné.
         Will raise an error if more than two sellers are set
         """
+        if 'active_ids' not in self.env.context:
+            return False
+
         product_ids = self.env.context['active_ids']
         products = self.env['product.template'].browse(product_ids)
 
@@ -173,3 +169,19 @@ class ComputedPurchaseOrder(models.Model):
             'target': 'current',
         }
         return action
+
+    def _compute_default_name(self):
+        supplier_id = self._get_selected_supplier()
+        if supplier_id:
+            supplier_name = (
+                self.env['res.partner']
+                    .browse(supplier_id)
+                    .name)
+
+            name = u'CPO {} {}'.format(
+                supplier_name,
+                fields.Date.today())
+        else:
+            name = 'New'
+
+        return name
