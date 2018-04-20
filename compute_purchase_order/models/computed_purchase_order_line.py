@@ -1,5 +1,10 @@
-from openerp import models, fields, api, _
+# -*- coding: utf-8 -*-
+import logging
+
+from openerp import models, fields, api, _, exceptions
 from openerp.exceptions import ValidationError
+
+_logger = logging.getLogger(__name__)
 
 
 class ComputedPurchaseOrderLine(models.Model):
@@ -62,7 +67,7 @@ class ComputedPurchaseOrderLine(models.Model):
 
     minimum_purchase_qty = fields.Float(
         string='Minimum Purchase Quantity',
-        related='supplierinfo_id.min_qty',
+        compute='_compute_min_qty',
     )
 
     purchase_quantity = fields.Float(
@@ -79,7 +84,7 @@ class ComputedPurchaseOrderLine(models.Model):
 
     product_price = fields.Float(
         string='Product Price (w/o VAT)',
-        related='supplierinfo_id.price',
+        compute='_compute_product_price',
         read_only=True,
         help='Supplier Product Price by buying unit. Price is  without VAT')
 
@@ -114,14 +119,47 @@ class ComputedPurchaseOrderLine(models.Model):
         return True
 
     @api.multi
+    @api.depends('product_template_id')
+    @api.onchange('product_template_id')
     def _compute_supplierinfo(self):
         for cpol in self:
-            SupplierInfo = self.env['product.supplierinfo']
-            si = SupplierInfo.search([
-                ('product_tmpl_id', '=', cpol.product_template_id.id),
-                ('name', '=', cpol.product_template_id.get_main_supplier().id)
-            ])
-            cpol.supplierinfo_id = si
+            if not cpol.product_template_id:
+                cpol.supplierinfo_id = False
+            else:
+                SupplierInfo = self.env['product.supplierinfo']
+                si = SupplierInfo.search([
+                    ('product_tmpl_id', '=', cpol.product_template_id.id),
+                    ('name', '=', cpol.product_template_id.get_main_supplier().id)
+                ])
+
+                if len(si) == 0:
+                    raise ValidationError(
+                        u'No supplier information set for {name}'
+                        .format(name=cpol.product_template_id.name))
+                elif len(si) == 1:
+                    cpol.supplierinfo_id = si
+                else:
+                    _logger.warning(
+                        u'product {name} has several suppliers, chose last'
+                            .format(name=cpol.product_template_id.name)
+                    )
+                    si = si.sorted(key=lambda r: r.create_date, reverse=True)
+                    cpol.supplierinfo_id = si[0]
+
+
+    @api.multi
+    @api.depends('supplierinfo_id')
+    @api.onchange('supplierinfo_id')
+    def _compute_min_qty(self):
+        for cpol in self:
+            cpol.minimum_purchase_qty = cpol.supplierinfo_id.min_qty
+
+    @api.multi
+    @api.depends('supplierinfo_id')
+    @api.onchange('supplierinfo_id')
+    def _compute_product_price(self):
+        for cpol in self:
+            cpol.product_price = cpol.supplierinfo_id.price
 
     @api.constrains('purchase_quantity')
     def _check_minimum_purchase_quantity(self):

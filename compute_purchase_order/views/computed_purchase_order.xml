@@ -59,7 +59,7 @@
 
           <field name="order_line_ids">
             <tree string="Order Lines" editable='bottom'>
-              <field name="product_template_id" readonly='1'/>
+              <field name="product_template_id"/>
               <field name="category_id" readonly='1'/>
               <field name="stock_qty" readonly='1'/>
               <field name="uom_id" readonly='1'/>
@@ -102,5 +102,17 @@
   <menuitem id="computed_purchase_order"
     parent="purchase.menu_procurement_management"
     action="action_computed_purchase_order"/>
+
+    <!-- Actions -->
+
+  <act_window id="action_view_form_computed_purchase_order"
+              name="Compute Direct Purchase Order"
+              src_model="product.template"
+              res_model="computed.purchase.order"
+              view_mode="form"
+              view_id="computed_purchase_order_form"
+              target="current"
+              key2="client_action_multi"
+    />
 
 </odoo>
