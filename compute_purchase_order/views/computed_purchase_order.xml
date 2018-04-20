@@ -106,7 +106,7 @@
     <!-- Actions -->
 
   <act_window id="action_view_form_computed_purchase_order"
-              name="Compute Direct Purchase Order"
+              name="Compute Purchase Order"
               src_model="product.template"
               res_model="computed.purchase.order"
               view_mode="form"
