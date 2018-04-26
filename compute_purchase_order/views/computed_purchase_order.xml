@@ -28,9 +28,6 @@
                   name="create_purchase_order"
                   string="Create Purchase Order"
                   class="oe_highlight"/>
-          <button type="object"
-                  name="add_products"
-                  string="Add Products to CPO"/>
         </header>
 
         <sheet>
