@@ -136,6 +136,11 @@ class ComputedPurchaseOrder(models.Model):
     @api.multi
     def create_purchase_order(self):
         self.ensure_one()
+
+        if sum(self.order_line_ids.mapped('purchase_quantity')) == 0:
+            raise ValidationError(u'You need at least a product to generate '
+                                  u'a Purchase Order')
+
         PurchaseOrder = self.env['purchase.order']
         PurchaseOrderLine = self.env['purchase.order.line']
 
@@ -148,18 +153,19 @@ class ComputedPurchaseOrder(models.Model):
         purchase_order = PurchaseOrder.create(po_values)
 
         for cpo_line in self.order_line_ids:
-            pol_values = {
-                'name': cpo_line.name,
-                'product_id': cpo_line.get_default_product_product().id,
-                'product_qty': cpo_line.purchase_quantity,
-                'price_unit': cpo_line.product_price,
-                'product_uom': cpo_line.uom_po_id.id,
-                'order_id': purchase_order.id,
-                'date_planned': self.date_planned,
-            }
-            PurchaseOrderLine.create(pol_values)
+            if cpo_line > 0:
+                pol_values = {
+                    'name': cpo_line.name,
+                    'product_id': cpo_line.get_default_product_product().id,
+                    'product_qty': cpo_line.purchase_quantity,
+                    'price_unit': cpo_line.product_price,
+                    'product_uom': cpo_line.uom_po_id.id,
+                    'order_id': purchase_order.id,
+                    'date_planned': self.date_planned,
+                }
+                PurchaseOrderLine.create(pol_values)
 
-        self.generated_purchase_order_ids += purchase_order
+            self.generated_purchase_order_ids += purchase_order
 
         action = {
             'type': 'ir.actions.act_window',
