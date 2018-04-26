@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 
-from openerp import models, fields, api, _, exceptions
+from openerp import models, fields, api
 from openerp.exceptions import ValidationError
 
 _logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class ComputedPurchaseOrderLine(models.Model):
         'product.template',
         string='Linked Product Template',
         required=True,
-        help="Linked Product Template")
+        help='Product')
 
     name = fields.Char(
         string='Product Name',
@@ -141,11 +141,10 @@ class ComputedPurchaseOrderLine(models.Model):
                 else:
                     _logger.warning(
                         u'product {name} has several suppliers, chose last'
-                            .format(name=cpol.product_template_id.name)
+                        .format(name=cpol.product_template_id.name)
                     )
                     si = si.sorted(key=lambda r: r.create_date, reverse=True)
                     cpol.supplierinfo_id = si[0]
-
 
     @api.multi
     @api.depends('supplierinfo_id')
@@ -166,12 +165,12 @@ class ComputedPurchaseOrderLine(models.Model):
         for cpol in self:
             if cpol.purchase_quantity < 0:
                 raise ValidationError(
-                    'Purchase quantity for {product_name} must be greater than 0'
-                    .format(product_name=cpol.product_template_id.name))
+                    u'Purchase quantity for {product_name} must be greater '
+                    u'than 0 '.format(product_name=cpol.product_template_id.name))
             elif 0 < cpol.purchase_quantity < cpol.minimum_purchase_qty:
                 raise ValidationError(
-                    'Purchase quantity for {product_name} must be greater '
-                    'than {min_qty}'
+                    u'Purchase quantity for {product_name} must be greater '
+                    u'than {min_qty}'
                     .format(product_name=cpol.product_template_id.name,
                             min_qty=cpol.minimum_purchase_qty))
 
@@ -192,6 +191,6 @@ class ComputedPurchaseOrderLine(models.Model):
             return products[0]
         else:
             raise ValidationError(
-                '%s:%s template has no variant set'
+                u'%s:%s template has no variant set'
                 % (self.product_template_id.id, self.product_template_id.name)
             )

@@ -57,6 +57,7 @@
           <field name="order_line_ids">
             <tree string="Order Lines" editable='bottom'>
               <field name="product_template_id"/>
+              <field name="name" readonly='1' invisible='1'/>
               <field name="category_id" readonly='1'/>
               <field name="stock_qty" readonly='1'/>
               <field name="uom_id" readonly='1'/>

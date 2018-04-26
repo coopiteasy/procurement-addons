@@ -15,4 +15,4 @@ class ProductTemplate(models.Model):
             return supplier_ids[0].name
         else:
             raise ValidationError(
-                'No supplier set for product %s' % self.name)
+                u'No supplier set for product %s' % self.name)

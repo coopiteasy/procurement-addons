@@ -101,12 +101,12 @@ class ComputedPurchaseOrder(models.Model):
             suppliers.add(main_supplier_id)
 
         if len(suppliers) == 0:
-            raise ValidationError('No supplier is set for selected articles.')
+            raise ValidationError(u'No supplier is set for selected articles.')
         elif len(suppliers) == 1:
             return suppliers.pop()
         else:
             raise ValidationError(
-                'You must select article from a single supplier.')
+                u'You must select article from a single supplier.')
 
     @api.multi
     def _compute_generated_po_count(self):
