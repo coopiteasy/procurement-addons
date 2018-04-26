@@ -16,5 +16,6 @@
     'data': [
         'security/ir.model.access.csv',
         'views/computed_purchase_order.xml',
+        'views/purchase_order.xml',
     ],
 }

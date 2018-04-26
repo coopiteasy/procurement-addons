@@ -39,9 +39,10 @@ class ComputedPurchaseOrder(models.Model):
         compute='_compute_cpo_total'
     )
 
-    generated_purchase_order_ids = fields.Many2many(
+    generated_purchase_order_ids = fields.One2many(
         'purchase.order',
-        string='Generated Purchase Orders'
+        'original_cpo_id',
+        string='Generated Purchase Orders',
     )
 
     generated_po_count = fields.Integer(
