@@ -129,7 +129,7 @@ class ComputedPurchaseOrderLine(models.Model):
                 SupplierInfo = self.env['product.supplierinfo']
                 si = SupplierInfo.search([
                     ('product_tmpl_id', '=', cpol.product_template_id.id),
-                    ('name', '=', cpol.product_template_id.get_main_supplier().id)
+                    ('name', '=', cpol.product_template_id.get_main_supplier().id)  # noqa
                 ])
 
                 if len(si) == 0:
@@ -166,7 +166,8 @@ class ComputedPurchaseOrderLine(models.Model):
             if cpol.purchase_quantity < 0:
                 raise ValidationError(
                     u'Purchase quantity for {product_name} must be greater '
-                    u'than 0 '.format(product_name=cpol.product_template_id.name))
+                    u'than 0 '
+                    .format(product_name=cpol.product_template_id.name))
             elif 0 < cpol.purchase_quantity < cpol.minimum_purchase_qty:
                 raise ValidationError(
                     u'Purchase quantity for {product_name} must be greater '
