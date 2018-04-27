@@ -194,3 +194,9 @@ class ComputedPurchaseOrderLine(models.Model):
                 u'%s:%s template has no variant set'
                 % (self.product_template_id.id, self.product_template_id.name)
             )
+
+    @api.multi
+    @api.onchange('product_template_id')
+    def _update_default_purchase_quantity(self):
+        for cpol in self:
+            cpol.purchase_quantity = cpol.supplierinfo_id.min_qty

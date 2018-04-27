@@ -80,6 +80,8 @@ class ComputedPurchaseOrder(models.Model):
                  'product_template_id': product_id,
                  }
             )
+            # should ideally be set in cpol defaults
+            cpol.purchase_quantity = cpol.minimum_purchase_qty
             cpol_ids.append(cpol.id)
         return cpol_ids
 
@@ -116,7 +118,6 @@ class ComputedPurchaseOrder(models.Model):
     @api.multi
     def get_generated_po_action(self):
         self.ensure_one()
-        print self.generated_purchase_order_ids.ids
         action = {
             'type': 'ir.actions.act_window',
             'res_model': 'purchase.order',
@@ -153,7 +154,7 @@ class ComputedPurchaseOrder(models.Model):
         purchase_order = PurchaseOrder.create(po_values)
 
         for cpo_line in self.order_line_ids:
-            if cpo_line > 0:
+            if cpo_line.purchase_quantity > 0:
                 pol_values = {
                     'name': cpo_line.name,
                     'product_id': cpo_line.get_default_product_product().id,
