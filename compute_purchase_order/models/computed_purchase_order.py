@@ -34,6 +34,12 @@ class ComputedPurchaseOrder(models.Model):
         string='Order Lines',
     )
 
+    supplier_product_ids = fields.Many2many(
+        'product.template',
+        string='Supplier Products',
+        compute='_compute_supplier_product_ids',
+    )
+
     total_amount = fields.Float(
         string='Total Amount (w/o VAT)',
         compute='_compute_cpo_total'
@@ -55,37 +61,17 @@ class ComputedPurchaseOrder(models.Model):
         record = super(ComputedPurchaseOrder, self).default_get(fields_list)
 
         record['date_planned'] = self._get_default_date_planned()
-        record['supplier_id'] = self._get_selected_supplier()
+        record['supplier_id'] = self._get_selected_supplier_id()
         record['order_line_ids'] = self._create_order_lines()
         record['name'] = self._compute_default_name()
+        record['supplier_product_ids'] = self._get_supplier_product_ids()
 
         return record
 
     def _get_default_date_planned(self):
         return fields.Datetime.now()
 
-    def _get_selected_products(self):
-        if 'active_ids' in self.env.context:
-            return self.env.context['active_ids']
-        else:
-            return []
-
-    def _create_order_lines(self):
-        product_tmpl_ids = self._get_selected_products()
-        cpol_ids = []
-        OrderLine = self.env['computed.purchase.order.line']
-        for product_id in product_tmpl_ids:
-            cpol = OrderLine.create(
-                {'computed_purchase_order_id': self.id,
-                 'product_template_id': product_id,
-                 }
-            )
-            # should ideally be set in cpol defaults
-            cpol.purchase_quantity = cpol.minimum_purchase_qty
-            cpol_ids.append(cpol.id)
-        return cpol_ids
-
-    def _get_selected_supplier(self):
+    def _get_selected_supplier_id(self):
         """
         Calcule le vendeur associé qui a la date de début la plus récente et
         plus petite qu’aujourd’hui pour chaque article sélectionné.
@@ -109,6 +95,55 @@ class ComputedPurchaseOrder(models.Model):
         else:
             raise ValidationError(
                 u'You must select article from a single supplier.')
+
+    def _create_order_lines(self):
+        product_tmpl_ids = self._get_selected_products()
+        cpol_ids = []
+        OrderLine = self.env['computed.purchase.order.line']
+        for product_id in product_tmpl_ids:
+            cpol = OrderLine.create(
+                {'computed_purchase_order_id': self.id,
+                 'product_template_id': product_id,
+                 }
+            )
+            # should ideally be set in cpol defaults
+            cpol.purchase_quantity = cpol.minimum_purchase_qty
+            cpol_ids.append(cpol.id)
+        return cpol_ids
+
+    def _compute_default_name(self):
+        supplier_id = self._get_selected_supplier_id()
+        if supplier_id:
+            supplier_name = (
+                self.env['res.partner']
+                    .browse(supplier_id)
+                    .name)
+
+            name = u'CPO {} {}'.format(
+                supplier_name,
+                fields.Date.today())
+        else:
+            name = 'New'
+        return name
+
+    def _get_selected_products(self):
+        if 'active_ids' in self.env.context:
+            return self.env.context['active_ids']
+        else:
+            return []
+
+    def _get_supplier_product_ids(self):
+        SupplierInfo = self.env['product.supplierinfo']
+        supplier_id = self._get_selected_supplier_id()
+        si = SupplierInfo.search([('name', '=', supplier_id)])
+        return si.mapped('product_tmpl_id').ids
+
+    @api.multi
+    def _compute_supplier_product_ids(self):
+        SupplierInfo = self.env['product.supplierinfo']
+        for cpo in self:
+            si = SupplierInfo.search([('name', '=', cpo.supplier_id.id)])
+            cpo.supplier_product_ids = si.mapped('product_tmpl_id')
 
     @api.multi
     def _compute_generated_po_count(self):
@@ -177,19 +212,3 @@ class ComputedPurchaseOrder(models.Model):
             'target': 'current',
         }
         return action
-
-    def _compute_default_name(self):
-        supplier_id = self._get_selected_supplier()
-        if supplier_id:
-            supplier_name = (
-                self.env['res.partner']
-                    .browse(supplier_id)
-                    .name)
-
-            name = u'CPO {} {}'.format(
-                supplier_name,
-                fields.Date.today())
-        else:
-            name = 'New'
-
-        return name
