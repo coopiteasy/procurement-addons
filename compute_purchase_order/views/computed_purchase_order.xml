@@ -38,7 +38,6 @@
               <field name="date_planned"/>
               <field name="total_amount"/>
               <field name="generated_purchase_order_ids" invisible='1'/>
-              <field name="supplier_product_ids" invisible='1'/>
             </group>
 
             <div name="buttons" class="oe_right oe_button_box">
@@ -55,9 +54,9 @@
 
           </group>
 
-          <field name="order_line_ids" context="{'supplier_product_ids': supplier_product_ids}">
+          <field name="order_line_ids" context="{'cpo_seller_id': supplier_id}">
             <tree string="Order Lines" editable='bottom'>
-              <field name="product_template_id" domain="[('id', 'in', supplier_product_ids[0][2])]"/>
+              <field name="product_template_id" domain="[('main_seller_id', '=', cpo_seller_id)]"/>
               <field name="category_id" readonly='1'/>
               <field name="stock_qty" readonly='1'/>
               <field name="uom_id" readonly='1'/>

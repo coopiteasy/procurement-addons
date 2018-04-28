@@ -34,12 +34,6 @@ class ComputedPurchaseOrder(models.Model):
         string='Order Lines',
     )
 
-    supplier_product_ids = fields.Many2many(
-        'product.template',
-        string='Supplier Products',
-        compute='_compute_supplier_product_ids',
-    )
-
     total_amount = fields.Float(
         string='Total Amount (w/o VAT)',
         compute='_compute_cpo_total'
@@ -64,7 +58,6 @@ class ComputedPurchaseOrder(models.Model):
         record['supplier_id'] = self._get_selected_supplier_id()
         record['order_line_ids'] = self._create_order_lines()
         record['name'] = self._compute_default_name()
-        record['supplier_product_ids'] = self._get_supplier_product_ids()
 
         return record
 
@@ -85,7 +78,7 @@ class ComputedPurchaseOrder(models.Model):
 
         suppliers = set()
         for product in products:
-            main_supplier_id = product.get_main_supplier().id
+            main_supplier_id = product.main_supplier_id.id
             suppliers.add(main_supplier_id)
 
         if len(suppliers) == 0:
@@ -131,19 +124,6 @@ class ComputedPurchaseOrder(models.Model):
             return self.env.context['active_ids']
         else:
             return []
-
-    def _get_supplier_product_ids(self):
-        SupplierInfo = self.env['product.supplierinfo']
-        supplier_id = self._get_selected_supplier_id()
-        si = SupplierInfo.search([('name', '=', supplier_id)])
-        return si.mapped('product_tmpl_id').ids
-
-    @api.multi
-    def _compute_supplier_product_ids(self):
-        SupplierInfo = self.env['product.supplierinfo']
-        for cpo in self:
-            si = SupplierInfo.search([('name', '=', cpo.supplier_id.id)])
-            cpo.supplier_product_ids = si.mapped('product_tmpl_id')
 
     @api.multi
     def _compute_generated_po_count(self):

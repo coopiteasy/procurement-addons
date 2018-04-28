@@ -67,7 +67,7 @@ class ComputedPurchaseOrderLine(models.Model):
 
     minimum_purchase_qty = fields.Float(
         string='Minimum Purchase Quantity',
-        compute='_compute_min_qty',
+        compute='_compute_on_product_template_update',
     )
 
     purchase_quantity = fields.Float(
@@ -84,7 +84,7 @@ class ComputedPurchaseOrderLine(models.Model):
 
     product_price = fields.Float(
         string='Product Price (w/o VAT)',
-        compute='_compute_product_price',
+        compute='_compute_on_product_template_update',
         read_only=True,
         help='Supplier Product Price by buying unit. Price is  without VAT')
 
@@ -96,6 +96,15 @@ class ComputedPurchaseOrderLine(models.Model):
     subtotal = fields.Float(
         string='Subtotal (w/o VAT)',
         compute='_compute_sub_total')
+
+    @api.multi
+    @api.onchange('product_template_id')
+    def _compute_on_product_template_update(self):
+        for cpol in self:
+            # get supplier info
+            cpol.minimum_purchase_qty = cpol.supplierinfo_id.min_qty
+            cpol.product_price = cpol.supplierinfo_id.price
+            cpol.purchase_quantity = cpol.supplierinfo_id.min_qty
 
     @api.depends('purchase_quantity')
     @api.multi
@@ -119,7 +128,7 @@ class ComputedPurchaseOrderLine(models.Model):
         return True
 
     @api.multi
-    @api.depends('product_template_id')
+    @api.depends('product_template_id')  # fixme
     @api.onchange('product_template_id')
     def _compute_supplierinfo(self):
         for cpol in self:
@@ -129,7 +138,7 @@ class ComputedPurchaseOrderLine(models.Model):
                 SupplierInfo = self.env['product.supplierinfo']
                 si = SupplierInfo.search([
                     ('product_tmpl_id', '=', cpol.product_template_id.id),
-                    ('name', '=', cpol.product_template_id.get_main_supplier().id)  # noqa
+                    ('name', '=', cpol.product_template_id.main_supplier_id.id)  # noqa
                 ])
 
                 if len(si) == 0:
@@ -146,34 +155,16 @@ class ComputedPurchaseOrderLine(models.Model):
                     si = si.sorted(key=lambda r: r.create_date, reverse=True)
                     cpol.supplierinfo_id = si[0]
 
-    @api.multi
-    @api.depends('supplierinfo_id')
-    @api.onchange('supplierinfo_id')
-    def _compute_min_qty(self):
-        for cpol in self:
-            cpol.minimum_purchase_qty = cpol.supplierinfo_id.min_qty
-
-    @api.multi
-    @api.depends('supplierinfo_id')
-    @api.onchange('supplierinfo_id')
-    def _compute_product_price(self):
-        for cpol in self:
-            cpol.product_price = cpol.supplierinfo_id.price
-
     @api.constrains('purchase_quantity')
     def _check_minimum_purchase_quantity(self):
         for cpol in self:
             if cpol.purchase_quantity < 0:
-                raise ValidationError(
-                    u'Purchase quantity for {product_name} must be greater '
-                    u'than 0 '
-                    .format(product_name=cpol.product_template_id.name))
+                raise ValidationError(u'Purchase quantity for {product_name} must be greater than 0'  # noqa
+                                        .format(product_name=cpol.product_template_id.name))
             elif 0 < cpol.purchase_quantity < cpol.minimum_purchase_qty:
-                raise ValidationError(
-                    u'Purchase quantity for {product_name} must be greater '
-                    u'than {min_qty}'
-                    .format(product_name=cpol.product_template_id.name,
-                            min_qty=cpol.minimum_purchase_qty))
+                raise ValidationError(u'Purchase quantity for {product_name} must be greater than {min_qty}'  # noqa
+                                       .format(product_name=cpol.product_template_id.name,
+                                               min_qty=cpol.minimum_purchase_qty))
 
     @api.multi
     def get_default_product_product(self):
@@ -196,8 +187,3 @@ class ComputedPurchaseOrderLine(models.Model):
                 % (self.product_template_id.id, self.product_template_id.name)
             )
 
-    @api.multi
-    @api.onchange('product_template_id')
-    def _update_default_purchase_quantity(self):
-        for cpol in self:
-            cpol.purchase_quantity = cpol.supplierinfo_id.min_qty
