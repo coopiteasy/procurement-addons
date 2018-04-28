@@ -31,6 +31,7 @@ class ComputedPurchaseOrderLine(models.Model):
         'product.supplierinfo',
         string='Supplier information',
         compute='_compute_supplierinfo',
+        store=True,
         readonly=True,
     )
 
@@ -67,7 +68,7 @@ class ComputedPurchaseOrderLine(models.Model):
 
     minimum_purchase_qty = fields.Float(
         string='Minimum Purchase Quantity',
-        compute='_compute_on_product_template_update',
+        compute='_depends_on_product_template',
     )
 
     purchase_quantity = fields.Float(
@@ -84,32 +85,38 @@ class ComputedPurchaseOrderLine(models.Model):
 
     product_price = fields.Float(
         string='Product Price (w/o VAT)',
-        compute='_compute_on_product_template_update',
+        compute='_depends_on_product_template',
         read_only=True,
         help='Supplier Product Price by buying unit. Price is  without VAT')
 
     virtual_coverage = fields.Float(
         string='Expected Stock Coverage',
-        compute='_compute_virtual_coverage',
+        compute='_depends_on_purchase_quantity',
         help='Expected stock coverage (in days) based on current stocks and average daily consumption')  # noqa
 
     subtotal = fields.Float(
         string='Subtotal (w/o VAT)',
-        compute='_compute_sub_total')
+        compute='_depends_on_purchase_quantity')
 
     @api.multi
-    @api.onchange('product_template_id')
-    def _compute_on_product_template_update(self):
+    @api.depends('product_template_id')
+    def _depends_on_product_template(self):
         for cpol in self:
             # get supplier info
             cpol.minimum_purchase_qty = cpol.supplierinfo_id.min_qty
             cpol.product_price = cpol.supplierinfo_id.price
+
+    @api.multi
+    @api.onchange('product_template_id')
+    def _onchange_purchase_quantity(self):
+        for cpol in self:
             cpol.purchase_quantity = cpol.supplierinfo_id.min_qty
 
     @api.depends('purchase_quantity')
     @api.multi
-    def _compute_virtual_coverage(self):
+    def _depends_on_purchase_quantity(self):
         for pol in self:
+            pol.subtotal = pol.product_price * pol.purchase_quantity
             avg = pol.average_consumption
             if avg > 0:
                 qty = pol.stock_qty + pol.purchase_quantity
@@ -120,15 +127,8 @@ class ComputedPurchaseOrderLine(models.Model):
 
         return True
 
-    @api.depends('purchase_quantity')
     @api.multi
-    def _compute_sub_total(self):
-        for pol in self:
-            pol.subtotal = pol.product_price * pol.purchase_quantity
-        return True
-
-    @api.multi
-    @api.depends('product_template_id')  # fixme
+    @api.depends('product_template_id')
     @api.onchange('product_template_id')
     def _compute_supplierinfo(self):
         for cpol in self:
