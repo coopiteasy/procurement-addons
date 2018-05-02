@@ -48,12 +48,19 @@ class ComputedPurchaseOrderLine(models.Model):
         related='product_template_id.uom_id',
         help="Default Unit of Measure used for all stock operation.")
 
-    stock_qty = fields.Float(
+    qty_available = fields.Float(
         string='Stock Quantity',
         related='product_template_id.qty_available',
         read_only=True,
         help='Quantity currently in stock. Does not take '
              'into account incoming orders.')
+
+    virtual_available = fields.Float(
+        string='Stock Quantity',
+        related='product_template_id.virtual_available',
+        read_only=True,
+        help='Virtual quantity taking into account current stock, incoming '
+             'orders and outgoing sales.')
 
     average_consumption = fields.Float(
         string='Average Consumption',
@@ -115,15 +122,15 @@ class ComputedPurchaseOrderLine(models.Model):
     @api.depends('purchase_quantity')
     @api.multi
     def _depends_on_purchase_quantity(self):
-        for pol in self:
-            pol.subtotal = pol.product_price * pol.purchase_quantity
-            avg = pol.average_consumption
+        for cpol in self:
+            cpol.subtotal = cpol.product_price * cpol.purchase_quantity
+            avg = cpol.average_consumption
             if avg > 0:
-                qty = pol.stock_qty + pol.purchase_quantity
-                pol.virtual_coverage = qty / avg
+                qty = cpol.virtual_available + cpol.purchase_quantity
+                cpol.virtual_coverage = qty / avg
             else:
                 # todo what would be a good default value? (not float(inf))
-                pol.virtual_coverage = 9999
+                cpol.virtual_coverage = 9999
 
         return True
 
