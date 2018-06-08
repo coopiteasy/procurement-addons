@@ -13,7 +13,7 @@ class ProductTemplate(models.Model):
     )
     calculation_range = fields.Integer(
         'Calculation range (days)',
-        default=365,  # todo sensible defaults, 14, 28?
+        default=14,
     )
 
     average_consumption = fields.Float(
